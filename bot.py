@@ -55,9 +55,10 @@ def welcome_buttons():
     ])
 
 
-def direction_screen_buttons(other_label, other_callback):
+def direction_buttons(action_label, rate_label, direction, other_label, other_callback):
     return kb([
-        [(texts.BTN_EXCHANGE_NOW, "exchange_now")],
+        [(action_label, f"exchange_now_{direction}")],
+        [(rate_label, f"exchange_now_{direction}")],
         [(other_label, other_callback)],
     ])
 
@@ -114,13 +115,19 @@ async def stop_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------------------------------------------------------------------
 
 async def send_buy(update_or_query, context, telegram_id):
-    buttons = direction_screen_buttons(texts.BTN_SELL, "pick_sell")
+    buttons = direction_buttons(
+        texts.BTN_BUY_ACTION, texts.BTN_RATE_AND_BUY, "buy",
+        texts.BTN_SELL, "pick_sell",
+    )
     await send_and_log(update_or_query, context, texts.BUY_TEXT, buttons, telegram_id)
     db.update_user(telegram_id, direction="buy", current_step="buy_shown", stage="ответил")
 
 
 async def send_sell(update_or_query, context, telegram_id):
-    buttons = direction_screen_buttons(texts.BTN_BUY, "pick_buy")
+    buttons = direction_buttons(
+        texts.BTN_SELL_ACTION, texts.BTN_RATE_AND_SELL, "sell",
+        texts.BTN_BUY, "pick_buy",
+    )
     await send_and_log(update_or_query, context, texts.SELL_TEXT, buttons, telegram_id)
     db.update_user(telegram_id, direction="sell", current_step="sell_shown", stage="ответил")
 
@@ -152,7 +159,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         buttons = kb([[(texts.BTN_EXCHANGE_NOW, "exchange_now")]])
         await query.message.reply_text(text_with_note, reply_markup=buttons)
 
-    elif data == "exchange_now":
+    elif data in ("exchange_now", "exchange_now_buy", "exchange_now_sell"):
         db.log_exchange_click(telegram_id)
         db.update_user(telegram_id, stage="обмен", current_step="exchanged")
         buttons = kb([[("💱 Открыть МенялоФФ", config.EXCHANGE_URL, "url")]])
