@@ -52,6 +52,7 @@ def welcome_buttons():
         [(texts.BTN_BUY, "pick_buy")],
         [(texts.BTN_SELL, "pick_sell")],
         [(texts.BTN_DONT_KNOW, "dont_know")],
+        [(texts.BTN_REFERRAL, "referral")],
     ])
 
 
@@ -60,6 +61,7 @@ def direction_buttons(action_label, rate_label, direction, other_label, other_ca
         [(action_label, f"exchange_now_{direction}")],
         [(rate_label, f"exchange_now_{direction}")],
         [(other_label, other_callback)],
+        [(texts.BTN_FAQ, f"faq_{direction}")],
     ])
 
 
@@ -159,15 +161,39 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         buttons = kb([[(texts.BTN_EXCHANGE_NOW, "exchange_now")]])
         await query.message.reply_text(text_with_note, reply_markup=buttons)
 
+    elif data == "faq_buy":
+        await query.message.reply_text(texts.FAQ_BUY_TEXT)
+        # справочная кнопка — не меняет шаг сценария
+
+    elif data == "faq_sell":
+        await query.message.reply_text(texts.FAQ_SELL_TEXT)
+        # справочная кнопка — не меняет шаг сценария
+
+    elif data == "referral":
+        buttons = kb([[("💱 Открыть МенялоФФ", config.EXCHANGE_URL, "url")]])
+        await query.message.reply_text(texts.REFERRAL_TEXT, reply_markup=buttons)
+        # справочная кнопка — не меняет шаг сценария
+
     elif data in ("exchange_now", "exchange_now_buy", "exchange_now_sell"):
         db.log_exchange_click(telegram_id)
         db.update_user(telegram_id, stage="обмен", current_step="exchanged")
         buttons = kb([[("💱 Открыть МенялоФФ", config.EXCHANGE_URL, "url")]])
-        await query.message.reply_text(
-            "Жми кнопку ниже — откроется бот МенялоФФ, там выбираешь направление "
-            "(купить/продать), вводишь сумму и реквизиты — обмен занимает пару минут.",
-            reply_markup=buttons,
-        )
+        if data == "exchange_now_buy":
+            instruction = (
+                "Жми кнопку ниже — откроется бот МенялоФФ.\n"
+                "Там нажми «Пополнить» → «Покупка USDT» (через СБП) — обмен занимает пару минут."
+            )
+        elif data == "exchange_now_sell":
+            instruction = (
+                "Жми кнопку ниже — откроется бот МенялоФФ.\n"
+                "Там нажми «Обменять» и переведи USDT в рубли на карту — обмен занимает пару минут."
+            )
+        else:
+            instruction = (
+                "Жми кнопку ниже — откроется бот МенялоФФ, там выбираешь направление "
+                "(купить/продать), вводишь сумму и реквизиты — обмен занимает пару минут."
+            )
+        await query.message.reply_text(instruction, reply_markup=buttons)
 
     elif data == "trouble_menu":
         buttons = kb([
